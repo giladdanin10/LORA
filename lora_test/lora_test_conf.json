@@ -5,12 +5,13 @@
     "lora_rx_port_baud_rate": 115200
   },
   "rcdat_http_ip": "192.168.200.76",
-  "results_path": "./results",
-  "missions_to_run":[2],
+  "results_path": "./results"
+  "missions_to_run":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],
   "missions_to_run1":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],
   "tx_type": "SDR",
   "tx_frequency_session": 915000,
-  "session_type": "logic_verify",
+  "session_type": "verify",
+  "session_type1": "evaluate",
 
   "search_algo_params": {
     "L_coarse": 1,
@@ -19,6 +20,7 @@
     "L_wp_margin": 1.0,
     "T_wp_corse":30,
     "T_wp_fine":30,
+    "T_verify": 5,
     "T_meas":10000,
     "N_packet_PER_factor": 100,
     "N_packet_margine": 10,
@@ -142,7 +144,7 @@
       "efc_code": 0,
       "preamble_length": 9,
       "payload_length": 102,
-      "delay_between_messages": 40,
+      "delay_between_messages": 0,
       "L_wp":23
     },
      {

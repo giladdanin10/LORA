@@ -226,7 +226,7 @@ def read_lora_rx_thread_func():
                     #
                     # # print('seconds:         ', results_json["seconds"])
                     # print('N_packet_iteration:  ', N_packet_iteration)
-                    print(f'mission_num={mission_num_global} stats={state_global} L={current_attenuation} N_packet_iteration={N_packet_iteration} elapsed={elapsed} rx_good={rx_good} rx_bad={rx_bad} PER={PER_global} SNR={SNR_embedded_global}')
+                    print(f'mission_num={mission_num_global} bw={results_json["bandwidth"]} sf={results_json["spreading_factor"]} stats={state_global} L={current_attenuation} N_packet_iteration={N_packet_iteration} elapsed={elapsed} rx_good={rx_good} rx_bad={rx_bad} PER={PER_global} SNR={SNR_embedded_global}')
 
 
         except KeyboardInterrupt:
@@ -561,7 +561,42 @@ def measure_rx_signal(sdr_serial, mission, rcdat_http_ip, L_wp, search_algo_para
     return True
 
 
-# def find_working_point(mission, search_algo_params, rcdat_http_ip):
+def verify(sdr_serial, mission, search_algo_params):
+    global rx_good
+    T_verify = search_algo_params["T_verify"]
+
+    #  start transmitting
+    try:
+        stop(sdr_serial)
+        sband(sdr_serial,mission)
+    except:
+        test_exit("Failed to start sband mission")
+
+
+# stage 0: check that we get packets at all at attenuation 0
+    elapsed = 0
+    stop_condition = False
+    reset_receiver_counters()
+    reset_counters_time = time.time()
+
+    while (not stop_condition):
+        while (manual_attenuation==1):
+            L = L_global
+            time.sleep(1)
+
+        elapsed = time.time() - reset_counters_time
+        stop_condition = (elapsed >= T_verify) or rx_good > 0
+        # print(f'mission_num_global = {mission_num_global} find_wp_state = {find_wp_state} elapsed = {elapsed} T_wp={T_wp} N_packet_global = {N_packet_global} PER = {PER_global} L = {L}')
+
+    if (rx_good==0):
+        update_results_file(f"mission {mission_num_global} failed")
+    else:
+        update_results_file(f"mission {mission_num_global} success")
+
+
+    state_global = 'config_test'
+    return -1
+
 def find_working_point(sdr_serial, mission, search_algo_params, rcdat_http_ip):
 
     global print_lora_rx_data
@@ -729,15 +764,19 @@ def set_rcdat_attenuation(rcdat_http_ip, attenuation):
     reset_receiver_counters()
 
 
-def config_test(mission, results_path):
+def config_test(mission, results_path,session_type):
     global results_file_name
     global state_global
     global results_file_global
 
+
     mission_num = mission['mission_num']
     bandwidth = mission['bandwidth']
     spreading_factor = mission['spreading_factor']
-    results_file_name = f'{results_path}/test{mission_num}_{bandwidth}_{spreading_factor}_results.txt'
+    if (session_type=='verify'):
+        results_file_name = f'{results_path}/verify_results.txt'
+    elif (session_type=='evaluate'):
+        results_file_name = f'{results_path}/test{mission_num}_{bandwidth}_{spreading_factor}_results.txt'
 
     change_state('config_test')
     # create output file
@@ -771,8 +810,11 @@ def config_test(mission, results_path):
         test_exit("Failed to configure lora_rx")
 
     start_time = time.time()
-    state_global = 'find working point'
+    if (session_type == 'evaluate'):
+        state_global = 'find working point'
 
+    elif (session_type == 'verify'):
+        state_global = 'verify'
 
 def reset_receiver_counters():
     try:
@@ -884,7 +926,10 @@ def main(argv):
             mission["tx_frequency"] = tx_frequency_session
 
         if state_global == 'config_test':
-            config_test(mission, results_path)
+            config_test(mission, results_path,session_type)
+
+        if (state_global == 'verify'):
+            status = verify(sdr_serial, mission, search_algo_params)
 
         if state_global == 'find working point':
             L_wp = find_working_point(sdr_serial, mission, search_algo_params, rcdat_http_ip)

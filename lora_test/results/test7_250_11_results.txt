@@ -1,0 +1,17 @@
+{
+  "mission_num": 7,
+  "tx_frequency": 915000,
+  "duration": 255,
+  "power": 1,
+  "terminal_id": 208,
+  "bandwidth": 250,
+  "spreading_factor": 11,
+  "efc_code": 0,
+  "preamble_length": 9,
+  "payload_length": 102,
+  "delay_between_messages": 40,
+  "L_wp": 23
+}
+---------------------------------	find working point---------------------------------
+Working point: L_wp=23
+---------------------------------	measure---------------------------------
