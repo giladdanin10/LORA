@@ -5,7 +5,7 @@
 // reliability, so you should only use RH_RF95 if you do not need the higher
 // level messaging abilities.
 // It is designed to work with the other example Feather9x_TX
-
+// 211123
 #include <SPI.h>
 
 // #define _SIMULATION_
@@ -17,7 +17,7 @@
 #endif
 
 
-#define SW_VERSION "0.2"
+#define SW_VERSION "0.3"
 
 /* for Feather32u4 RFM9x
   #define RFM95_CS 8
@@ -54,7 +54,7 @@
 #define RF95_FREQ 915.0
 
 #define SPREADING_FACTOR 11  // 8 - 11
-#define BANDWIDTH_KHZ 125    // 125/250/500
+#define BANDWIDTH_KHZ 250    // 125/250/500
 
 // Singleton instance of the radio driver
 
@@ -66,6 +66,7 @@ volatile int8_t sRegValue;
 
 float frequency = RF95_FREQ;
 uint8_t spreadingFactor = SPREADING_FACTOR;
+uint8_t ldro = 0;
 long bandwidth_khz = BANDWIDTH_KHZ;
 bool doDisplayMessage = true;
 
@@ -124,24 +125,29 @@ void setup() {
 
   rf95.setTxPower(9, false);
 
-  Serial.print("Spreading Factor: ");
-  Serial.println(spreadingFactor);
+  // Serial.print("Spreading Factor: ");
+  // Serial.println(spreadingFactor);
 
-  Serial.print("Bandwidth [KHz]: ");
-  Serial.println(bandwidth_khz);
+  // Serial.print("Bandwidth [KHz]: ");
+  // Serial.println(bandwidth_khz);
 
   rf95.setSpreadingFactor(spreadingFactor);
   //rf95.setPayloadCRC(false);
   rf95.setSignalBandwidth(bandwidth_khz*1000);
-  //  rf95.setSignalBandwidth(62500);
-  //  rf95.setCodingRate4(6);  //Coding Rate 4/8
-  rf95.setCodingRate4(5);  //Coding Rate 4/8
+#if 0//???
+  rf95.setCodingRate4(8);  //Coding Rate 4/8
+#else
+  rf95.setCodingRate4(5);  //Coding Rate 4/5
+#endif
+  // rf95.write_addr(0x1d,0x89);
 }
 
 void loop() {
   if (doDisplayMessage) {
-    uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t buf[MY_RH_RF95_MAX_MESSAGE_LEN];
     uint8_t len = sizeof(buf);
+
+    bzero(buf, MY_RH_RF95_MAX_MESSAGE_LEN);
 
     if (rf95.recv(buf, &len)) {
       // RH_RF95::printBuffer("Received: ", buf, len);
@@ -177,6 +183,7 @@ void GetConfiguration() {
       Serial.println(teststr + " OK");
     } else {
       String partialString = teststr.substring(0, 3);
+      String partialString_long = teststr.substring(0, 5);
 
       if (partialString == "bw=") {
         partialString = teststr.substring(3, teststr.length());
@@ -200,8 +207,24 @@ void GetConfiguration() {
         doDisplayMessage = teststr.substring(3, teststr.length()) != "0";
         // delay(10);
         rf95.setSpreadingFactor(spreadingFactor = partialString.toInt());
+      } else if (partialString_long == "ldro=") {
+        partialString = teststr.substring(5, teststr.length());
+
+        Serial.print("Set ldro to ");
+        Serial.println(partialString.toInt());
+        // delay(10);
+
+        rf95.setLowDatarate(ldro = partialString.toInt());
+      }
+        else if (partialString_long == "dump=")   {
+            for (int i = 0; i <= 0x3c; i++) {
+              rf95.read_addr(i);
+            }
+            delay(10000);
+
+
       } else {
-        Serial.println(teststr + " is not valid: 'bw=<SignalBandwidth>' | 'sf=<>'SpreadingFactor");
+        Serial.println(teststr + " is not valid: 'bw=<SignalBandwidth>' | 'sf=<SpreadingFactor>' | 'ldro=<LDRO>'");
       }
     }
   }
@@ -210,16 +233,22 @@ void GetConfiguration() {
 void PrintResults() {
   static char json_str[250];
 
+
+
+
+
+
   snprintf(json_str,
            sizeof(json_str),
-           "{\"spreading_factor\":%u, \"bandwidth\":%ld, \"rssi\":%d, \"rx_good\":%u, \"rx_bad\":%u, \"snr\":%d, \"seconds\":%lu}",
+           "{\"spreading_factor\":%u, \"bandwidth\":%ld,\"ldro\":%u \"rssi\":%d, \"rx_good\":%u, \"rx_bad\":%u, \"snr\":%d, \"seconds\":%lu}",
            (unsigned int)spreadingFactor,
            bandwidth_khz,
+           ldro,
            rf95.lastRssi(),
            rf95.rxGood(),
            rf95.rxBad(),
            rf95.lastSNR(),
            millis() / 1000);
-
+  
   Serial.println(json_str);
 }

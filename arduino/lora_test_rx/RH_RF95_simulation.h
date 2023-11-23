@@ -9,8 +9,8 @@
 // $Id: RH_RF95.h,v 1.26 2020/06/15 23:39:39 mikem Exp $
 //
 
-#ifndef RH_RF95_h
-#define RH_RF95_h
+#ifndef RH_RF95_SIMULATION_h
+#define RH_RF95_SIMULATION_h
 
 // #include <RHSPIDriver.h>
 
