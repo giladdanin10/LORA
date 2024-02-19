@@ -9,62 +9,55 @@ if (~exist('data_path.mat'))
 else
     load('data_path.mat');
 end
-[fileI data_path] = uigetfile(fullfile(data_path,{'*.txt;*.mat'}));
+[fileI data_path] = uigetfile(fullfile(data_path,{'*.txt','*.mat'}));
+uigetfile(fullfile(data_path, '*.txt', '*.mat'))
 
 save data_path data_path
-if (strcmp(FILE.getFileExt(fileI),'mat'))
-   Fs = 1e6;
-   BW = 250;
-   SF = 11;
-    load ([data_path '\' fileI]);
+fileQ = strrep(fileI,'_I','_Q');
+
+nodes = strsplit(fileQ,'_');
+BW = str2num(nodes{1})*1e3;
+SF = str2num(nodes{2});
+
+if (strfind(fileI,'SIM'))
+    Fs = 128e6;
 else
-
-    fileQ = strrep(fileI,'_I','_Q');
-
-    nodes = strsplit(fileQ,'_');
-    BW = str2num(nodes{1})*1e3;
-    SF = str2num(nodes{2});
-
-    if (strfind(fileI,'SIM'))
-        Fs = 128e6;
-    else
-        Fs = 5e6;
-    end
-
-    yLim_val = [-1 1]*(BW/2+100e3)/1e6;
-
-
-    [data_I status] = LORA.import_data_file([data_path '\' fileI]);if (status) return;end
-    [data_Q status] = LORA.import_data_file([data_path '\' fileQ]);if (status) return;end
-
-    len = min(length(data_I),length(data_Q));
-    data_I = data_I(1:len);
-    data_Q = data_Q(1:len);
-
-
-    if (strfind(fileI,'SIM'))
-        data_I = data_I/2^15;
-        ind = find(data_I>1);
-        data_I(ind) = -data_I(ind)+1;
-
-        data_Q = data_Q/2^15;
-        ind = find(data_Q>1);
-        data_Q(ind) = -data_Q(ind)+1;
-
-        % remove possiblle nans in the end of the files
-        ind_nan = [find(isnan(data_I));find(isnan(data_Q))];
-        data_I(ind_nan) = [];
-        data_Q(ind_nan) = [];
-    end
-
-    sig = data_I+1j*data_Q;
+    Fs = 5e6;
 end
+
+yLim_val = [-1 1]*(BW/2+100e3)/1e6;
+
+
+[data_I status] = LORA.import_data_file([data_path '\' fileI]);if (status) return;end
+[data_Q status] = LORA.import_data_file([data_path '\' fileQ]);if (status) return;end
+
+len = min(length(data_I),length(data_Q));
+data_I = data_I(1:len);
+data_Q = data_Q(1:len);
+
+
+if (strfind(fileI,'SIM'))
+    data_I = data_I/2^15;
+    ind = find(data_I>1);
+    data_I(ind) = -data_I(ind)+1;
+    
+    data_Q = data_Q/2^15;
+    ind = find(data_Q>1);
+    data_Q(ind) = -data_Q(ind)+1;    
+
+% remove possiblle nans in the end of the files
+    ind_nan = [find(isnan(data_I));find(isnan(data_Q))];
+    data_I(ind_nan) = [];
+    data_Q(ind_nan) = [];
+end
+
+sig = data_I+1j*data_Q;
 
 % symbols_err_table = LORA.compare_symbols(symbols_ref,symbols_ADAFRUIT_ref);
 if (Fs>5e6)
     sig = resample(sig,5e6,Fs);
     Fs = 5e6;
-
+    
 end
 
 
